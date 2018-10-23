@@ -32,10 +32,10 @@ MCI_mat = DataFrame(sio.loadmat('./Data/BCTs/2.MCI.mat')['subjects'])
 EMCI_mat = DataFrame(sio.loadmat('./Data/BCTs/1.EMCI.mat')['subjects'])
 HC_mat = DataFrame(sio.loadmat('./Data/BCTs/0.HC.mat')['subjects'])
 
-subjects = pd.concat([AD_mat, LMCI_mat, MCI_mat, EMCI_mat, HC_mat], ignore_index = True)
+subjects = pd.concat([AD_mat, LMCI_mat, MCI_mat, EMCI_mat, HC_mat], ignore_index=True)
 
+subjects = subjects.reindex(np.random.permutation(subjects.index)).sort_index()
 
-subjects = subjects.reindex(np.random.permutation(subjects.index))
 
 class CmdThread(threading.Thread):
     def __init__(self, cmd):
@@ -45,6 +45,7 @@ class CmdThread(threading.Thread):
     def run(self):
         print(self.cmd)
         os.system(self.cmd)
+
 
 def parse_labels_and_features(dataset):
     """Extracts labels and features.
@@ -63,13 +64,13 @@ def parse_labels_and_features(dataset):
     labels = dataset[0].astype(int)
 
     for label_index in labels.index:
-        if labels[label_index] == 1: # for HC
+        if labels[label_index] == 1:  # for HC
             labels[label_index] = 0
-        elif labels[label_index] == 10: # for EMCI
+        elif labels[label_index] == 10:  # for EMCI
             labels[label_index] = 1
-        elif labels[label_index] == 100: # for MCI
+        elif labels[label_index] == 100:  # for MCI
             labels[label_index] = 2
-        elif labels[label_index] == 1000:# for LMCI
+        elif labels[label_index] == 1000:  # for LMCI
             labels[label_index] = 3
         elif labels[label_index] == 10000:  # for AD
             labels[label_index] = 4
@@ -144,6 +145,7 @@ def create_predict_input_fn(features, labels, batch_size):
         return feature_batch, label_batch
 
     return _input_fn
+
 
 def train_nn_classification_model(
         learning_rate,
@@ -227,16 +229,16 @@ def train_nn_classification_model(
         training_predictions = list(classifier.predict(input_fn=predict_training_input_fn))
         training_probabilities = np.array([item['probabilities'] for item in training_predictions])
         training_pred_class_id = np.array([item['class_ids'][0] for item in training_predictions])
-        training_pred_one_hot = tf.keras.utils.to_categorical(training_pred_class_id, num_classes = 5)
+        training_pred_one_hot = tf.keras.utils.to_categorical(training_pred_class_id, num_classes=5)
 
         validation_predictions = list(classifier.predict(input_fn=predict_validation_input_fn))
         validation_probabilities = np.array([item['probabilities'] for item in validation_predictions])
         validation_pred_class_id = np.array([item['class_ids'][0] for item in validation_predictions])
-        validation_pred_one_hot = tf.keras.utils.to_categorical(validation_pred_class_id, num_classes = 5)
+        validation_pred_one_hot = tf.keras.utils.to_categorical(validation_pred_class_id, num_classes=5)
 
         # Compute training and validation errors.
-        training_log_loss = metrics.log_loss(training_targets, training_pred_one_hot)
-        validation_log_loss = metrics.log_loss(validation_targets, validation_pred_one_hot)
+        training_log_loss = metrics.log_loss(training_targets, training_pred_one_hot, labels=list(set(training_targets)))
+        validation_log_loss = metrics.log_loss(validation_targets, validation_pred_one_hot, labels=list(set(validation_targets)))
         # Occasionally print the current loss.
         print("  period %02d : %0.2f" % (period, validation_log_loss))
         # Add the loss metrics from this period to our list.
@@ -280,7 +282,7 @@ def train_nn_classification_model(
 
 classifier = train_nn_classification_model(
     learning_rate=0.001,
-    steps=100000,
+    steps=1000,
     batch_size=1,
     hidden_units=[1000, 1000, 1000],
     training_examples=training_features,

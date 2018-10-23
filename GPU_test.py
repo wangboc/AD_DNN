@@ -10,10 +10,10 @@ with tf.device('/cpu:0'):
     net_cpu = tf.layers.conv2d(random_image_cpu, 32, 7)
     net_cpu = tf.reduce_sum(net_cpu)
 
-# with tf.device('/gpu:0'):
-#     random_image_gpu = tf.random_normal((100, 100, 100, 3))
-#     net_gpu = tf.layers.conv2d(random_image_gpu, 32, 7)
-#     net_gpu = tf.reduce_sum(net_gpu)
+with tf.device('/gpu:0'):
+    random_image_gpu = tf.random_normal((100, 100, 100, 3))
+    net_gpu = tf.layers.conv2d(random_image_gpu, 32, 7)
+    net_gpu = tf.reduce_sum(net_gpu)
 
 sess = tf.Session(config=config)
 
@@ -32,8 +32,8 @@ def cpu():
     sess.run(net_cpu)
 
 
-# def gpu():
-#     sess.run(net_gpu)
+def gpu():
+    sess.run(net_gpu)
 
 
 # Runs the op several times.
@@ -42,9 +42,9 @@ print('Time (s) to convolve 32x7x7x3 filter over random 100x100x100x3 images '
 print('CPU (s):')
 cpu_time = timeit.timeit('cpu()', number=10, setup="from __main__ import cpu")
 print(cpu_time)
-# print('GPU (s):')
-# gpu_time = timeit.timeit('gpu()', number=10, setup="from __main__ import gpu")
-# print(gpu_time)
-# print('GPU speedup over CPU: {}x'.format(int(cpu_time / gpu_time)))
+print('GPU (s):')
+gpu_time = timeit.timeit('gpu()', number=10, setup="from __main__ import gpu")
+print(gpu_time)
+print('GPU speedup over CPU: {}x'.format(int(cpu_time / gpu_time)))
 
 sess.close()
