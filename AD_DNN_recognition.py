@@ -32,9 +32,14 @@ MCI_mat = DataFrame(sio.loadmat('./Data/BCTs/2.MCI.mat')['subjects'])
 EMCI_mat = DataFrame(sio.loadmat('./Data/BCTs/1.EMCI.mat')['subjects'])
 HC_mat = DataFrame(sio.loadmat('./Data/BCTs/0.HC.mat')['subjects'])
 
-subjects = pd.concat([AD_mat, LMCI_mat, MCI_mat, EMCI_mat, HC_mat], ignore_index=True)
+subjects = pd.concat([AD_mat, HC_mat], ignore_index=True)
 
-subjects = subjects.reindex(np.random.permutation(subjects.index)).sort_index()
+# check your environment, sometimes it fails to shuffle data, due to python version related reasons.
+# if errors, like 'ValueError: y_true contains only one label...', arise during the program, try another code
+# Bocheng Wang 2018.10.23
+
+subjects = subjects.reindex(np.random.permutation(subjects.index))
+# subjects = subjects.reindex(np.random.permutation(subjects.index)).sort_index()
 
 
 class CmdThread(threading.Thread):
@@ -66,14 +71,14 @@ def parse_labels_and_features(dataset):
     for label_index in labels.index:
         if labels[label_index] == 1:  # for HC
             labels[label_index] = 0
-        elif labels[label_index] == 10:  # for EMCI
-            labels[label_index] = 1
-        elif labels[label_index] == 100:  # for MCI
-            labels[label_index] = 2
-        elif labels[label_index] == 1000:  # for LMCI
-            labels[label_index] = 3
+        # elif labels[label_index] == 10:  # for EMCI
+        #     labels[label_index] = 1
+        # elif labels[label_index] == 100:  # for MCI
+        #     labels[label_index] = 2
+        # elif labels[label_index] == 1000:  # for LMCI
+        #     labels[label_index] = 3
         elif labels[label_index] == 10000:  # for AD
-            labels[label_index] = 4
+            labels[label_index] = 1
     # DataFrame.loc index ranges are inclusive at both ends.
 
     features = dataset.loc[:, 1:]
@@ -229,12 +234,12 @@ def train_nn_classification_model(
         training_predictions = list(classifier.predict(input_fn=predict_training_input_fn))
         training_probabilities = np.array([item['probabilities'] for item in training_predictions])
         training_pred_class_id = np.array([item['class_ids'][0] for item in training_predictions])
-        training_pred_one_hot = tf.keras.utils.to_categorical(training_pred_class_id, num_classes=5)
+        training_pred_one_hot = tf.keras.utils.to_categorical(training_pred_class_id, num_classes=2)
 
         validation_predictions = list(classifier.predict(input_fn=predict_validation_input_fn))
         validation_probabilities = np.array([item['probabilities'] for item in validation_predictions])
         validation_pred_class_id = np.array([item['class_ids'][0] for item in validation_predictions])
-        validation_pred_one_hot = tf.keras.utils.to_categorical(validation_pred_class_id, num_classes=5)
+        validation_pred_one_hot = tf.keras.utils.to_categorical(validation_pred_class_id, num_classes=2)
 
         # Compute training and validation errors.
         training_log_loss = metrics.log_loss(training_targets, training_pred_one_hot, labels=list(set(training_targets)))
@@ -281,8 +286,8 @@ def train_nn_classification_model(
 
 
 classifier = train_nn_classification_model(
-    learning_rate=0.001,
-    steps=1000,
+    learning_rate=0.00001,
+    steps=10000,
     batch_size=1,
     hidden_units=[1000, 1000, 1000],
     training_examples=training_features,
