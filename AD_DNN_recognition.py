@@ -155,6 +155,7 @@ def create_predict_input_fn(features, labels, batch_size):
 def train_nn_classification_model(
         learning_rate,
         steps,
+        number_classes,
         batch_size,
         hidden_units,
         training_examples,
@@ -207,7 +208,7 @@ def train_nn_classification_model(
     # my_optimizer = tf.train.MomentumOptimizer(learning_rate, 0.9)
     classifier = tf.estimator.DNNClassifier(
         feature_columns=feature_columns,
-        n_classes=5,
+        n_classes=number_classes,
         activation_fn=nn.relu,
         hidden_units=hidden_units,
         optimizer=my_optimizer,
@@ -216,7 +217,7 @@ def train_nn_classification_model(
     logdir = classifier.model_dir
     cmd = 'tensorboard --logdir ' + logdir
     thread = CmdThread(cmd)
-    thread.start()
+    # thread.start()
     # Train the model, but do so inside a loop so that we can periodically assess
     # loss metrics.
     print("Training model...")
@@ -234,12 +235,12 @@ def train_nn_classification_model(
         training_predictions = list(classifier.predict(input_fn=predict_training_input_fn))
         training_probabilities = np.array([item['probabilities'] for item in training_predictions])
         training_pred_class_id = np.array([item['class_ids'][0] for item in training_predictions])
-        training_pred_one_hot = tf.keras.utils.to_categorical(training_pred_class_id, num_classes=2)
+        training_pred_one_hot = tf.keras.utils.to_categorical(training_pred_class_id, num_classes=number_classes)
 
         validation_predictions = list(classifier.predict(input_fn=predict_validation_input_fn))
         validation_probabilities = np.array([item['probabilities'] for item in validation_predictions])
         validation_pred_class_id = np.array([item['class_ids'][0] for item in validation_predictions])
-        validation_pred_one_hot = tf.keras.utils.to_categorical(validation_pred_class_id, num_classes=2)
+        validation_pred_one_hot = tf.keras.utils.to_categorical(validation_pred_class_id, num_classes=number_classes)
 
         # Compute training and validation errors.
         training_log_loss = metrics.log_loss(training_targets, training_pred_one_hot, labels=list(set(training_targets)))
@@ -288,6 +289,7 @@ def train_nn_classification_model(
 classifier = train_nn_classification_model(
     learning_rate=0.00001,
     steps=10000,
+    number_classes=2,
     batch_size=1,
     hidden_units=[1000, 1000, 1000],
     training_examples=training_features,
