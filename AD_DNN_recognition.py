@@ -16,6 +16,7 @@ from sklearn import metrics
 import scipy.io as sio
 from pandas import DataFrame
 import tensorflow as tf
+from tensorflow.contrib.optimizer_v2.gradient_descent import GradientDescentOptimizer
 from tensorflow.python.data import Dataset
 from tensorflow.python.ops import nn
 import threading
@@ -86,8 +87,8 @@ def parse_labels_and_features(dataset):
     return labels, features
 
 
-training_targets, training_features = parse_labels_and_features(subjects[:100])
-validation_targets, validation_features = parse_labels_and_features(subjects[100:])
+training_targets, training_features = parse_labels_and_features(subjects[:40])
+validation_targets, validation_features = parse_labels_and_features(subjects[40:])
 
 
 def create_training_input_fn(features, labels, batch_size, num_epochs=None, shuffle=True):
@@ -203,8 +204,9 @@ def train_nn_classification_model(
     feature_columns = [tf.feature_column.numeric_column('features', shape=training_examples.shape[1])]
 
     # Create a DNNClassifier object.
-    my_optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate)
-    my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer, 5.0)
+    # my_optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate)
+    # my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer, 5.0)
+    my_optimizer = GradientDescentOptimizer(learning_rate)
     # my_optimizer = tf.train.MomentumOptimizer(learning_rate, 0.9)
     classifier = tf.estimator.DNNClassifier(
         feature_columns=feature_columns,
@@ -263,35 +265,35 @@ def train_nn_classification_model(
     print("Final accuracy (on validation data): %0.2f" % accuracy)
 
     # Output a graph of loss metrics over periods.
-    plt.ylabel("LogLoss")
-    plt.xlabel("Periods")
-    plt.title("LogLoss vs. Periods")
-    plt.plot(training_errors, label="training")
-    plt.plot(validation_errors, label="validation")
-    plt.legend()
-    plt.show()
+    # plt.ylabel("LogLoss")
+    # plt.xlabel("Periods")
+    # plt.title("LogLoss vs. Periods")
+    # plt.plot(training_errors, label="training")
+    # plt.plot(validation_errors, label="validation")
+    # plt.legend()
+    # plt.show()
 
     # Output a plot of the confusion matrix.
     cm = metrics.confusion_matrix(validation_targets, final_predictions)
     # Normalize the confusion matrix by row (i.e by the number of samples
     # in each class).
-    cm_normalized = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
-    ax = sns.heatmap(cm_normalized, cmap="bone_r")
-    ax.set_aspect(1)
-    plt.title("Confusion matrix")
-    plt.ylabel("True label")
-    plt.xlabel("Predicted label")
-    plt.show()
+    # cm_normalized = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
+    # ax = sns.heatmap(cm_normalized, cmap="bone_r")
+    # ax.set_aspect(1)
+    # plt.title("Confusion matrix")
+    # plt.ylabel("True label")
+    # plt.xlabel("Predicted label")
+    # plt.show()
 
     return classifier
 
 
 classifier = train_nn_classification_model(
-    learning_rate=0.00001,
+    learning_rate=0.0001,
     steps=10000,
     number_classes=2,
     batch_size=1,
-    hidden_units=[1000, 1000, 1000],
+    hidden_units=[3240] * 100,
     training_examples=training_features,
     training_targets=training_targets,
     validation_examples=validation_features,
